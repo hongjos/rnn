@@ -26,17 +26,19 @@ class CELoss:
         """
         return self.Y_hat - self.Y
 
-def mult_zeros_like(params):
-    """
-    Same thing as numpy's zeros like except it works with lists.
-    Used for defining/initializing gradients.
-    """
-    return [np.zeros_like(p) for p in params]
-
 def clip_gradients(grads, val=1):
     """
-    Clips gradients to avoid exploding gradients.
-    ---
+    Takes in a dictionary of gradients and clips them to avoid exploding gradients.
+    ----
     value -> maximum gradient value
     """
-    return [np.clip(g, -val, val) for g in grads]
+    for g in grads:
+        grads[g] = np.clip(g, -val, val)
+
+def add_char(name, char):
+    """
+    Adds a single character to the front of a string. Used for naming gradients.
+    ----
+    char -> the character to be added
+    """
+    return char + name

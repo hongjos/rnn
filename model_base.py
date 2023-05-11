@@ -23,9 +23,9 @@ class Model:
         # initialize hidden state
         self.hidden = np.zeros((self.hidden_dim, 1))
 
-        # initialize parameters and gradients
-        self.params = None
-        self.grads = None
+        # initialize parameters and gradients (as dictionaries)
+        self.P = {}
+        self.G = {}
 
     def feed_forward(self, X):
         """
@@ -51,8 +51,9 @@ class Model:
         ----
         """
         # do one step
-        for param, grad in zip(self.params, self.grads):
-            param -= self.learning_rate * grad
+        for param in self.P:
+            grad = 'd' + param
+            self.P[param] -= self.learning_rate * self.G[grad]
     
     def fit(self, Xtrain, Ytrain, num_epochs, print_flag=False):
         """
@@ -135,3 +136,14 @@ class Model:
             return np.argmax(self.outputs[-1]) # return which class
         else:
             return self.outputs
+    
+    def define_gradients(self):
+        """
+        Define the gradients for back propagation. 
+        """
+        # iterate through parameter names
+        for param in self.P:
+            # initialize gradient
+            grad = 'd' + param
+            self.G[grad] = np.zeros_like(self.P[param])
+
