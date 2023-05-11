@@ -1,4 +1,5 @@
 import numpy as np
+from activation import *
 
 class CELoss:
     """
@@ -6,6 +7,7 @@ class CELoss:
     """
     def __init__(self):
         self.type = 'CELoss'
+        self.type = Softmax()
     
     def forward(self, Y, Y_hat):
         """
@@ -17,6 +19,7 @@ class CELoss:
         self.Y = Y
         self.Y_hat = Y_hat
 
+        # compute the cross entropy loss
         loss = np.sum(-Y*np.log(Y_hat), axis=0).mean()
         return loss
 
@@ -24,7 +27,7 @@ class CELoss:
         """
         Computes the derivative of the loss for back prop.
         """
-        return self.Y_hat - self.Y
+        return self.Y_hat - self.Y # derivative of softmax CE loss
 
 def clip_gradients(grads, val=1):
     """
@@ -32,6 +35,7 @@ def clip_gradients(grads, val=1):
     ----
     value -> maximum gradient value
     """
+    # go through gradients and clip them
     for g in grads:
         grads[g] = np.clip(grads[g], -val, val)
 
