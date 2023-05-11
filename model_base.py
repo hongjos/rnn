@@ -75,10 +75,6 @@ class Model:
             for j in range(len(Xtrain)):
                 X = Xtrain[j] # current training example
                 Y = Ytrain[j] # target of training example
-
-                # re-initialize hidden and cell state
-                self.hidden = np.zeros((self.hidden_dim, 1))
-                self.cmem = np.zeros((self.hidden_dim, 1)) # for lstm
                 
                 # forward pass
                 Y_hat = self.feed_forward(X)

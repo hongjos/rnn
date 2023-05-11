@@ -62,7 +62,7 @@ class Sigmoid(Activation):
 
     def backward(self, x):
         a = self.forward(x)
-        return a*(1 - a) # sigmoid tanh derivative
+        return a*(1 - a) # sigmoid derivative
 
 class Tanh(Activation):
     """
@@ -77,4 +77,4 @@ class Tanh(Activation):
 
     def backward(self, x):
         a = self.forward(x)
-        return 1 - a**2 # compute tanh derivative
+        return 1 - a**2 # tanh derivative

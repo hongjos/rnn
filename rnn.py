@@ -37,6 +37,9 @@ class RNN(Model):
         Computes the forward pass of the RNN.
         Returns the output at the last step.
         """
+        # re-initialize hidden state
+        self.hidden = np.zeros((self.hidden_dim, 1))
+        
         # initialize storage for hidden states and output
         self.hidden_states, self.outputs = [], [] 
 

@@ -49,6 +49,10 @@ class LSTM(Model):
         Computes the forward pass of the LSTM.
         Returns the output at the last step.
         """
+        # re-initialize hidden and cell state
+        self.hidden = np.zeros((self.hidden_dim, 1))
+        self.cmem = np.zeros((self.hidden_dim, 1))
+        
         ### initialize storage for the components in the LSTM ###
         # combined hidden and input states
         self.x_states = []

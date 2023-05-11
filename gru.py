@@ -44,6 +44,9 @@ class GRU(Model):
         Computes the forward pass of the GRU.
         Returns the output at the last step.
         """
+        # re-initialize hidden state
+        self.hidden = np.zeros((self.hidden_dim, 1))
+
         ### initialize storage for the components in the GRU ###
         # reset, update, candidate, hidden to output gate states
         self.r_states, self.u_states, self.c_states, self.y_states = [], [], [], []
