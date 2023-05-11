@@ -13,15 +13,21 @@ class RNN(Model):
         """
         super().__init__(input_dim, output_dim, hidden_dim, learning_rate, type)
 
+        # set parameter names
+        self.param_names = ['W_ax', 'W_aa', 'W_ya', 'b_a', 'b_y']
+        
+        # set gradient names
+        self.grad_names = [add_char(p, 'd') for p in self.param_names]
+
         dlen = np.sqrt(hidden_dim) # used to normalize weights
         
         # initialize parameters
-        self.W_ax = np.random.randn(hidden_dim, input_dim) / dlen    # weight matrix (input to hidden state)
-        self.W_aa = np.random.randn(hidden_dim, hidden_dim) / dlen   # weight matrix (recurrent, hidden to hidden)
-        self.W_ya = np.random.randn(output_dim, hidden_dim) / dlen   # weight matrix (hidden to output)
+        self.P['W_ax'] = np.random.randn(hidden_dim, input_dim) / dlen    # weight matrix (input to hidden state)
+        self.P['W_aa'] = np.random.randn(hidden_dim, hidden_dim) / dlen   # weight matrix (recurrent, hidden to hidden)
+        self.P['W_ya'] = np.random.randn(output_dim, hidden_dim) / dlen   # weight matrix (hidden to output)
         
-        self.b_a = np.zeros((hidden_dim, 1))                         # bias (hidden)
-        self.b_y = np.zeros((output_dim, 1))                         # bias (output)
+        self.P['b_a'] = np.zeros((hidden_dim, 1))                         # bias (hidden)
+        self.P['b_y'] = np.zeros((output_dim, 1))                         # bias (output)
 
         # initialize hidden state
         self.hidden = np.zeros((self.hidden_dim, 1))        
@@ -39,7 +45,7 @@ class RNN(Model):
         """
         # re-initialize hidden state
         self.hidden = np.zeros((self.hidden_dim, 1))
-        
+
         # initialize storage for hidden states and output
         self.hidden_states, self.outputs = [], [] 
 
@@ -49,10 +55,10 @@ class RNN(Model):
         # iterate through each element in the input vector
         for t in range(t_range):
             # compute new hidden state
-            self.hidden = tanh.forward(np.dot(self.W_aa, self.hidden) + np.dot(self.W_ax, X[t]) + self.b_a)
+            self.hidden = tanh.forward(np.dot(self.P['W_aa'], self.hidden) + np.dot(self.P['W_ax'], X[t]) + self.P['b_a'])
 
             # compute output
-            y = self.activation.forward(np.dot(self.W_ya, self.hidden) + self.b_y)
+            y = self.activation.forward(np.dot(self.P['W_ya'], self.hidden) + self.P['b_y'])
 
             # store output and hidden state
             self.hidden_states.append(self.hidden.copy())
@@ -90,48 +96,23 @@ class RNN(Model):
                 dy = self.loss_function.backward()
 
             # update gradients for output weights and bias
-            self.dW_ya += np.dot(dy, self.hidden_states[t].T)
-            self.db_y += dy
+            self.G['dW_ya'] += np.dot(dy, self.hidden_states[t].T)
+            self.G['db_y'] += dy
 
             # compute gradient for hidden state
-            da = np.dot(self.W_ya.T, dy) + da_next 
+            da = np.dot(self.P['W_ya'].T, dy) + da_next 
 
             # update gradients for hidden weights and bias
             dtanh = tanh.backward(self.hidden_states[t])*da
-            self.db_a += dtanh
-            self.dW_ax += np.dot(dtanh, X[t].T)
-            self.dW_aa += np.dot(dtanh, self.hidden_states[t-1].T)
+            self.G['db_a'] += dtanh
+            self.G['dW_ax'] += np.dot(dtanh, X[t].T)
+            self.G['dW_aa'] += np.dot(dtanh, self.hidden_states[t-1].T)
 
             # update gradient for next hidden state
-            da_next = np.dot(self.W_aa.T, dtanh)
+            da_next = np.dot(self.P['W_aa'].T, dtanh)
 
         # clip gradients
-        grads = [self.dW_ax, self.dW_aa, self.dW_ya, self.db_a, self.db_y]
-        [self.dW_ax, self.dW_aa, self.dW_ya, self.db_a, self.db_y] = clip_gradients(grads)
+        clip_gradients(self.G)
 
         return loss
-
-    def optimize(self):
-        """
-        This is where the parameters are updated using the SGD optimizer.
-        ----
-        """   
-        params = [self.W_ax, self.W_aa, self.W_ya, self.b_a, self.b_y]
-        grads = [self.dW_ax, self.dW_aa, self.dW_ya, self.db_a, self.db_y]
-
-        # do one step
-        for i in range(len(params)):
-            params[i] -= self.learning_rate * grads[i]
-
-        # make sure parameters are updated
-        [self.W_ax, self.W_aa, self.W_ya, self.b_a, self.b_y] = params
-    
-    def define_gradients(self):
-        """
-        Define the gradients for back propagation. 
-        """
-        params = [self.W_ax, self.W_aa, self.W_ya, self.b_a, self.b_y]
-
-        self.dW_ax, self.dW_aa, self.dW_ya, self.db_a, self.db_y = mult_zeros_like(params)
-        
-        
+            
