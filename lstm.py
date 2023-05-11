@@ -198,7 +198,7 @@ class LSTM(Model):
             dhidden_next = dhi[:self.hidden_dim, :]
             dcmem_next = self.f_states[t]*dcmem
 
-        # clip gradients
+        clip_gradients(self.G) # clip gradients
 
         return loss
     

@@ -33,7 +33,7 @@ def clip_gradients(grads, val=1):
     value -> maximum gradient value
     """
     for g in grads:
-        grads[g] = np.clip(g, -val, val)
+        grads[g] = np.clip(grads[g], -val, val)
 
 def add_char(name, char):
     """
