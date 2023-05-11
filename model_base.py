@@ -146,4 +146,3 @@ class Model:
             # initialize gradient
             grad = 'd' + param
             self.G[grad] = np.zeros_like(self.P[param])
-
