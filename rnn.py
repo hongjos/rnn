@@ -7,7 +7,7 @@ class RNN(Model):
     """
     A standard recurrent neural network (RNN) model.
     """
-    def __init__(self, input_dim, output_dim, hidden_dim, learning_rate=1e-5, type='many-to-one'):
+    def __init__(self, input_dim, output_dim, hidden_dim, learning_rate=1e-3, type='many-to-one'):
         """
         Initialize the RNN.
         """
@@ -78,7 +78,6 @@ class RNN(Model):
             dy = self.loss_function.backward()
         
         # go through hidden layers and update gradients
-        # we ignore the initial (t=0) hidden layer
         for t in reversed(range(len(self.hidden_states))):
             # if many-to-many type RNN we compute the loss at each step
             if self.type == "many-to-many":
@@ -98,7 +97,9 @@ class RNN(Model):
             self.db_a += dtanh
             self.dW_ax += np.dot(dtanh, X[t].T)
             self.dW_aa += np.dot(dtanh, self.hidden_states[t-1].T)
-            da_next = np.dot(self.W_aa.T, dtanh) # update gradient for next hidden state
+
+            # update gradient for next hidden state
+            da_next = np.dot(self.W_aa.T, dtanh)
 
         # clip gradients
         grads = [self.dW_ax, self.dW_aa, self.dW_ya, self.db_a, self.db_y]

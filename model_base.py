@@ -76,8 +76,9 @@ class Model:
                 X = Xtrain[j] # current training example
                 Y = Ytrain[j] # target of training example
 
-                # re-initialize hidden state
+                # re-initialize hidden and cell state
                 self.hidden = np.zeros((self.hidden_dim, 1))
+                self.cmem = np.zeros((self.hidden_dim, 1)) # for lstm
                 
                 # forward pass
                 Y_hat = self.feed_forward(X)
@@ -93,8 +94,8 @@ class Model:
             
             # store loss at epoch
             epoch_loss.append(curr_loss)
-
-            print(f'Epoch {i+1}, training loss: {epoch_loss[-1]}')
+            if i % 5 == 0:
+                print(f'Epoch {i}, training loss: {epoch_loss[-1]}')
         
         return epoch_loss
     
