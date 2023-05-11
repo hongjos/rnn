@@ -19,6 +19,7 @@ class RNN(Model):
         self.W_ax = np.random.randn(hidden_dim, input_dim) / dlen    # weight matrix (input to hidden state)
         self.W_aa = np.random.randn(hidden_dim, hidden_dim) / dlen   # weight matrix (recurrent, hidden to hidden)
         self.W_ya = np.random.randn(output_dim, hidden_dim) / dlen   # weight matrix (hidden to output)
+        
         self.b_a = np.zeros((hidden_dim, 1))                         # bias (hidden)
         self.b_y = np.zeros((output_dim, 1))                         # bias (output)
 

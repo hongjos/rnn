@@ -5,11 +5,11 @@ from model_base import Model
 
 class LSTM(Model):
     """
-    A standard recurrent neural network (RNN) model.
+    A standard long short-term memort (LSTM) RNN model.
     """
     def __init__(self, input_dim, output_dim, hidden_dim, learning_rate=1e-3, type='many-to-one'):
         """
-        Initialize the RNN.
+        Initialize the LSTM.
         """
         super().__init__(input_dim, output_dim, hidden_dim, learning_rate, type)
 
@@ -22,6 +22,11 @@ class LSTM(Model):
         self.W_c = np.random.randn(hidden_dim, self.ih_dim) / dlen   # weight matrix (candidate gate) 
         self.W_o = np.random.randn(hidden_dim, self.ih_dim) / dlen   # weight matrix (output gate) 
         self.W_y = np.random.randn(output_dim, hidden_dim) / dlen    # weight matrix (hidden to output)
+
+        self.U_f = np.random.randn(hidden_dim, hidden_dim) / dlen   # weight matrix recurrence (forget)
+        self.U_i = np.random.randn(hidden_dim, hidden_dim) / dlen   # weight matrix recurrence (input) 
+        self.U_c = np.random.randn(hidden_dim, hidden_dim) / dlen   # weight matrix recurrence (candidate) 
+        self.U_o = np.random.randn(hidden_dim, hidden_dim) / dlen   # weight matrix recurrence (output gate) 
 
         self.b_f = np.zeros((hidden_dim, 1)) # bias (forget gate) 
         self.b_i = np.zeros((hidden_dim, 1)) # bias (update gate)
@@ -71,11 +76,17 @@ class LSTM(Model):
             x = np.row_stack((self.hidden, X[t]))
             self.x_states.append(x)
             
-            # gate computation
-            forget = sigmoid.forward(np.dot(self.W_f, x) + self.b_f)   # compute forget gate
-            update = sigmoid.forward(np.dot(self.W_i, x) + self.b_i)   # compute input/update gate
-            cand = tanh.forward(np.dot(self.W_c, x) + self.b_c)        # compute candidate
-            out = sigmoid.forward(np.dot(self.W_o, x) + self.b_o)      # compute output gate
+            # compute forget gate
+            forget = sigmoid.forward(np.dot(self.W_f, x) + np.dot(self.U_f, self.hidden) + self.b_f)
+
+            # compute input/update gate   
+            update = sigmoid.forward(np.dot(self.W_i, x) + np.dot(self.U_i, self.hidden) + self.b_i)
+
+            # compute candidate  
+            cand = tanh.forward(np.dot(self.W_c, x) + np.dot(self.U_c, self.hidden) + self.b_c)
+
+            # compute output gate        
+            out = sigmoid.forward(np.dot(self.W_o, x) + np.dot(self.U_o, self.hidden)+ self.b_o)      
 
             # compute new memory
             self.cmem = forget*self.cmem + update*cand 
@@ -140,11 +151,11 @@ class LSTM(Model):
 
             # compute derivative for hidden and output states       
             dh = np.dot(self.W_y.T, dy) + dhidden_next
-            do = dh*tanh.forward(self.cmem_states[t])
-            do = sigmoid.backward(self.o_states[t])*do
+            do = sigmoid.backward(self.o_states[t])*dh*tanh.forward(self.cmem_states[t])
 
             # update gradients for output gate
             self.dW_o += np.dot(do, self.x_states[t].T)
+            self.dU_o += np.dot(do, self.hidden_states[t].T)
             self.db_o += do
 
             # compute derivative for the cell memory state and candidate
@@ -154,16 +165,19 @@ class LSTM(Model):
             
             # update the gradients with respect to the candidate
             self.dW_c += np.dot(dc, self.x_states[t].T)
+            self.dU_c += np.dot(dc, self.hidden_states[t].T)
             self.db_c += dc
 
             # update gradients for input/update gate
             di = sigmoid.backward(self.i_states[t])*dcmem*self.c_states[t]
             self.dW_i += np.dot(di, self.x_states[t].T)
+            self.dU_i += np.dot(di, self.hidden_states[t].T)
             self.db_i += di
 
             # update gradients for forget fate
             df = sigmoid.forward(self.f_states[t])*dcmem*self.cmem_states[t-1]
             self.dW_f += np.dot(df, self.x_states[t].T)
+            self.dU_f += np.dot(df, self.hidden_states[t].T)
             self.db_f += df
 
             # update gradients for next hidden cell mem state
@@ -173,8 +187,10 @@ class LSTM(Model):
 
         # clip gradients
         grads = [self.dW_f, self.dW_i, self.dW_c, self.dW_o, self.dW_y,
+                 self.dU_f, self.dU_i, self.dU_c, self.dU_o,
                  self.db_f, self.db_i, self.db_c, self.db_o, self.db_y]
         [self.dW_f, self.dW_i, self.dW_c, self.dW_o, self.dW_y,
+         self.dU_f, self.dU_i, self.dU_c, self.dU_o,
          self.db_f, self.db_i, self.db_c, self.db_o, self.db_y] = clip_gradients(grads)
 
         return loss
@@ -184,9 +200,11 @@ class LSTM(Model):
         This is where the parameters are updated using the SGD optimizer.
         ----
         """   
-        params = [self.W_f, self.W_i, self.W_c, self.W_o, self.W_y, 
+        params = [self.W_f, self.W_i, self.W_c, self.W_o, self.W_y,
+                  self.U_f, self.U_i, self.U_c, self.U_o,  
                   self.b_f, self.b_i, self.b_c, self.b_o, self.b_y]
         grads = [self.dW_f, self.dW_i, self.dW_c, self.dW_o, self.dW_y,
+                 self.dU_f, self.dU_i, self.dU_c, self.dU_o,
                  self.db_f, self.db_i, self.db_c, self.db_o, self.db_y]
 
         # do one step
@@ -195,16 +213,19 @@ class LSTM(Model):
 
         # make sure parameters are updated
         [self.W_f, self.W_i, self.W_c, self.W_o, self.W_y,
+         self.U_f, self.U_i, self.U_c, self.U_o,
          self.b_f, self.b_i, self.b_c, self.b_o, self.b_y] = params
     
     def define_gradients(self):
         """
         Define the gradients for back propagation. 
         """
-        params = [self.W_f, self.W_i, self.W_c, self.W_o, self.W_y, 
+        params = [self.W_f, self.W_i, self.W_c, self.W_o, self.W_y,
+                  self.U_f, self.U_i, self.U_c, self.U_o,  
                   self.b_f, self.b_i, self.b_c, self.b_o, self.b_y]
         
-        [self.dW_f, self.dW_i, self.dW_c, self.dW_o, self.dW_y, 
+        [self.dW_f, self.dW_i, self.dW_c, self.dW_o, self.dW_y,
+         self.dU_f, self.dU_i, self.dU_c, self.dU_o, 
          self.db_f, self.db_i, self.db_c, self.db_o, self.db_y] = mult_zeros_like(params)
         
         
