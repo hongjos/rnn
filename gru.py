@@ -13,22 +13,30 @@ class GRU(Model):
         """
         super().__init__(input_dim, output_dim, hidden_dim, learning_rate, type)
 
+        # set parameter names
+        self.param_names = ['W_r', 'W_u', 'W_c', 'W_y',
+                            'U_r', 'U_u', 'U_c',
+                            'b_r', 'b_u', 'b_c', 'b_y']
+        
+        # set gradient names
+        self.grad_names = [add_char(p, 'd') for p in self.param_names]
+
         dlen = np.sqrt(self.hidden_dim) # used to normalize weights
         
         # initialize parameters
-        self.W_r = np.random.randn(hidden_dim, input_dim) / dlen    # weight matrix (reset gate)
-        self.W_u = np.random.randn(hidden_dim, input_dim) / dlen    # weight matrix (update gate) 
-        self.W_c = np.random.randn(hidden_dim, input_dim) / dlen    # weight matrix (candidate gate) 
-        self.W_y = np.random.randn(output_dim, hidden_dim) / dlen   # weight matrix (hidden to output)
+        self.P['W_r'] = np.random.randn(hidden_dim, input_dim) / dlen   # weight matrix (reset gate)
+        self.P['W_u'] = np.random.randn(hidden_dim, input_dim) / dlen   # weight matrix (update gate) 
+        self.P['W_c'] = np.random.randn(hidden_dim, input_dim) / dlen   # weight matrix (candidate gate) 
+        self.P['W_y'] = np.random.randn(output_dim, hidden_dim) / dlen  # weight matrix (hidden to output)
 
-        self.U_r = np.random.randn(hidden_dim, hidden_dim) / dlen   # weight matrix recurrence (reset)
-        self.U_u = np.random.randn(hidden_dim, hidden_dim) / dlen   # weight matrix recurrence (update) 
-        self.U_c = np.random.randn(hidden_dim, hidden_dim) / dlen   # weight matrix recurrence (candidate) 
+        self.P['U_r'] = np.random.randn(hidden_dim, hidden_dim) / dlen  # weight matrix recurrence (reset)
+        self.P['U_u'] = np.random.randn(hidden_dim, hidden_dim) / dlen  # weight matrix recurrence (update) 
+        self.P['U_c'] = np.random.randn(hidden_dim, hidden_dim) / dlen  # weight matrix recurrence (candidate) 
 
-        self.b_r = np.zeros((hidden_dim, 1)) # bias (reset gate) 
-        self.b_u = np.zeros((hidden_dim, 1)) # bias (update gate)
-        self.b_c = np.zeros((hidden_dim, 1)) # bias (candidate)
-        self.b_y = np.zeros((output_dim, 1)) # bias (hidden to output)
+        self.P['b_r'] = np.zeros((hidden_dim, 1)) # bias (reset gate) 
+        self.P['b_u'] = np.zeros((hidden_dim, 1)) # bias (update gate)
+        self.P['b_c'] = np.zeros((hidden_dim, 1)) # bias (candidate)
+        self.P['b_y'] = np.zeros((output_dim, 1)) # bias (hidden to output)
 
         # initialize the hidden state
         self.hidden = np.zeros((self.hidden_dim, 1))      
@@ -61,19 +69,19 @@ class GRU(Model):
         # iterate through each element in the input vector
         for t in range(t_range):
             # compute reset gate
-            reset = sigmoid.forward(np.dot(self.W_r, X[t]) + np.dot(self.U_r, self.hidden) + self.b_r)
+            reset = sigmoid.forward(np.dot(self.P['W_r'], X[t]) + np.dot(self.P['U_r'], self.hidden) + self.P['b_r'])
 
             # compute update gate      
-            update = sigmoid.forward(np.dot(self.W_u, X[t]) + np.dot(self.U_u, self.hidden) + self.b_u)
+            update = sigmoid.forward(np.dot(self.P['W_u'], X[t]) + np.dot(self.P['U_u'], self.hidden) + self.P['b_u'])
 
             # compute candidate     
-            cand = tanh.forward(np.dot(self.W_c, X[t]) + np.dot(self.U_c, self.hidden) +  self.b_c)          
+            cand = tanh.forward(np.dot(self.P['W_c'], X[t]) + np.dot(self.P['U_c'], self.hidden) +  self.P['b_c'])          
 
             # compute new hidden state
             self.hidden = np.multiply(update, self.hidden) + np.multiply((1 - update), cand)
 
             # compute the hidden to output state
-            h_o = np.dot(self.W_y, self.hidden) + self.b_y
+            h_o = np.dot(self.P['W_y'], self.hidden) + self.P['b_y']
 
             # compute the prediction
             y = self.activation.forward(h_o)
@@ -121,81 +129,42 @@ class GRU(Model):
                 dy = self.loss_function.backward()
             
             # update gradient for hidden to output
-            self.dW_y += np.dot(dy, self.hidden_states[t].T)
-            self.db_y += dy
+            self.G['dW_y'] += np.dot(dy, self.hidden_states[t].T)
+            self.G['db_y'] += dy
 
             # compute derivatives for hidden and candidate
-            dh = np.dot(self.W_y.T, dy) + dhidden_next
+            dh = np.dot(self.P['W_y'].T, dy) + dhidden_next
             dc = tanh.backward(self.c_states[t])*np.multiply(dh, (1 - self.u_states[t]))
             
             # update gradients for candidate gate
-            self.dW_c += np.dot(dc, X[t].T)
-            self.dU_c += np.dot(dc, np.multiply(self.r_states[t], self.hidden_states[t-1]).T)
-            self.db_c += dc
+            self.G['dW_c'] += np.dot(dc, X[t].T)
+            self.G['dU_c'] += np.dot(dc, np.multiply(self.r_states[t], self.hidden_states[t-1]).T)
+            self.G['db_c'] += dc
             
             # compute derivatives for reset gate
-            dr = np.multiply(np.dot(self.U_c.T, dc), self.hidden_states[t-1])
+            dr = np.multiply(np.dot(self.P['U_c'].T, dc), self.hidden_states[t-1])
             dr = dr*sigmoid.backward(self.r_states[t])
             
             # update reset gate gradients
-            self.dW_r += np.dot(dr, X[t].T)
-            self.dU_r += np.dot(dr, self.hidden_states[t-1].T)
-            self.db_r += dr
+            self.G['dW_r'] += np.dot(dr, X[t].T)
+            self.G['dU_r'] += np.dot(dr, self.hidden_states[t-1].T)
+            self.G['db_r'] += dr
             
             # compute derivatives for update gate
             du = np.multiply(dh, self.hidden_states[t-1] - self.c_states[t])
             du = du*sigmoid.backward(self.u_states[t])
             
             # update update gradients
-            self.dW_u += np.dot(du, X[t].T)
-            self.dU_u += np.dot(du, self.hidden_states[t-1].T)
-            self.db_u += du
+            self.G['dW_u'] += np.dot(du, X[t].T)
+            self.G['dU_u'] += np.dot(du, self.hidden_states[t-1].T)
+            self.G['db_u'] += du
             
             # update next hidden state gradient
-            dhnext = np.dot(self.U_u.T, du) + np.multiply(dh, self.u_states[t])
-            dhnext += np.multiply(np.dot(self.U_c.T, dc), self.r_states[t]) + np.dot(self.U_r.T, dr)
+            dhnext = np.dot(self.P['U_u'].T, du) + np.multiply(dh, self.u_states[t])
+            dhnext += np.multiply(np.dot(self.P['U_c'].T, dc), self.r_states[t]) + np.dot(self.P['U_r'].T, dr)
 
         # clip gradients
-        grads = [self.dW_r, self.dW_u, self.dW_c, self.dW_y,
-                 self.dU_r, self.dU_u, self.dU_c, 
-                 self.db_r, self.db_u, self.db_c, self.db_y]
-        [self.dW_r, self.dW_u, self.dW_c, self.dW_y,
-         self.dU_r, self.dU_u, self.dU_c, 
-         self.db_r, self.db_u, self.db_c, self.db_y] = clip_gradients(grads)
+        clip_gradients(self.G)
 
-        return loss
-
-    def optimize(self):
-        """
-        This is where the parameters are updated using the SGD optimizer.
-        ----
-        """   
-        params = [self.W_r, self.W_u, self.W_c, self.W_y,
-                  self.U_r, self.U_u, self.U_c, 
-                  self.b_r, self.b_u, self.b_c, self.b_y]
-        grads = [self.dW_r, self.dW_u, self.dW_c, self.dW_y,
-                 self.dU_r, self.dU_u, self.dU_c, 
-                 self.db_r, self.db_u, self.db_c, self.db_y]
-
-        # do one step
-        for i in range(len(params)):
-            params[i] -= self.learning_rate * grads[i]
-
-        # make sure parameters are updated
-        [self.W_r, self.W_u, self.W_c, self.W_y,
-         self.U_r, self.U_u, self.U_c,
-         self.b_r, self.b_u, self.b_c, self.b_y] = params
-    
-    def define_gradients(self):
-        """
-        Define the gradients for back propagation. 
-        """
-        params = [self.W_r, self.W_u, self.W_c, self.W_y,
-                  self.U_r, self.U_u, self.U_c, 
-                  self.b_r, self.b_u, self.b_c, self.b_y]
-        
-        [self.dW_r, self.dW_u, self.dW_c, self.dW_y,
-         self.dU_r, self.dU_u, self.dU_c, 
-         self.db_r, self.db_u, self.db_c, self.db_y] = mult_zeros_like(params)
-        
+        return loss 
         
