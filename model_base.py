@@ -27,7 +27,7 @@ class Model:
         self.P = {}
         self.G = {}
 
-    def feed_forward(self, X):
+    def forward(self, X):
         """
         Does Nothing. This is where forward propagation should happen.
         ---
@@ -35,7 +35,7 @@ class Model:
         """
         return np.zeros((self.output_dim, 1))
     
-    def back_prop(self, X, Y, Y_hat):
+    def backward(self, X, Y, Y_hat):
         """
         Does Nothing. This is where back propagation should happen.
         ----

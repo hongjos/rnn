@@ -52,7 +52,7 @@ class LSTM(Model):
         # the loss function used (cross entropy loss for now)
         self.loss_function = CELoss()
         
-    def feed_forward(self, X):
+    def forward(self, X):
         """
         Computes the forward pass of the LSTM.
         Returns the output at the last step.
@@ -124,7 +124,7 @@ class LSTM(Model):
         
         return self.outputs[-1]
     
-    def back_prop(self, X, Y, Y_hat):
+    def backward(self, X, Y, Y_hat):
         """
         Computes the gradients through back propagation, returning the loss.
         For classifaction (many-to-one) we only care about the last output.

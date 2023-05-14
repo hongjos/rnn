@@ -47,7 +47,7 @@ class GRU(Model):
         # the loss function used (cross entropy loss)
         self.loss_function = CELoss()
         
-    def feed_forward(self, X):
+    def forward(self, X):
         """
         Computes the forward pass of the GRU.
         Returns the output at the last step.
@@ -96,7 +96,7 @@ class GRU(Model):
         
         return self.outputs[-1]
     
-    def back_prop(self, X, Y, Y_hat):
+    def backward(self, X, Y, Y_hat):
         """
         Computes the gradients through back propagation, returning the loss.
         For classifaction (many-to-one) we only care about the last output.
