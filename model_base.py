@@ -78,10 +78,10 @@ class Model:
                 Y = Ytrain[j] # target of training example
                 
                 # forward pass
-                Y_hat = self.feed_forward(X)
+                Y_hat = self.forward(X)
 
                 # back prop
-                loss = self.back_prop(X, Y, Y_hat)
+                loss = self.backward(X, Y, Y_hat)
 
                 # update parameters
                 self.optimize()
@@ -128,8 +128,8 @@ class Model:
         ---
         X -> input vector
         """        
-        # call feed forward
-        self.feed_forward(X)
+        # call forward
+        self.forward(X)
 
         # return predicted output based on the type
         if self.type == "many-to-one":
