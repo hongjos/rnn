@@ -7,7 +7,7 @@ class RNN(Model):
     """
     A standard recurrent neural network (RNN) model.
     """
-    def __init__(self, input_dim, output_dim, hidden_dim, learning_rate=1e-3, type='many-to-one'):
+    def __init__(self, input_dim, output_dim, hidden_dim, learning_rate=.1, type='many-to-one'):
         """
         Initialize the RNN.
         """
@@ -38,7 +38,7 @@ class RNN(Model):
         # the loss function used (cross entropy loss)
         self.loss_function = CELoss()
         
-    def feed_forward(self, X):
+    def forward(self, X):
         """
         Computes the forward pass of the RNN.
         Returns the output at the last step.
@@ -66,7 +66,7 @@ class RNN(Model):
         
         return self.outputs[-1]
     
-    def back_prop(self, X, Y, Y_hat):
+    def backward(self, X, Y, Y_hat):
         """
         Computes the gradients through back propagation, returning the loss.
         For classifaction (many-to-one) we only care about the last output.

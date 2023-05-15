@@ -20,14 +20,16 @@ class CELoss:
         self.Y_hat = Y_hat
 
         # compute the cross entropy loss
-        loss = np.sum(-Y*np.log(Y_hat), axis=0).mean()
+        loss = np.sum(-Y*np.log(Y_hat), axis=1).mean()
         return loss
 
     def backward(self):
         """
         Computes the derivative of the loss for back prop.
         """
-        return self.Y_hat - self.Y # derivative of softmax CE loss
+        dy = self.Y_hat.copy()
+        dy[np.argmax(self.Y)] -= 1
+        return dy # derivative of softmax CE loss
 
 def clip_gradients(grads, val=1):
     """

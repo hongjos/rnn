@@ -92,7 +92,7 @@ class LSTM(Model):
             forget = sigmoid.forward(np.dot(self.P['W_f'], x) + np.dot(self.P['U_f'], self.hidden) + self.P['b_f'])
 
             # compute input/update gate   
-            update = sigmoid.forward(np.dot(self.P['W_i'], x) + np.dot(self.P['U_i'], self.hidden) + self.P['b_i'])
+            input = sigmoid.forward(np.dot(self.P['W_i'], x) + np.dot(self.P['U_i'], self.hidden) + self.P['b_i'])
 
             # compute candidate  
             cand = tanh.forward(np.dot(self.P['W_c'], x) + np.dot(self.P['U_c'], self.hidden) + self.P['b_c'])
@@ -101,7 +101,7 @@ class LSTM(Model):
             out = sigmoid.forward(np.dot(self.P['W_o'], x) + np.dot(self.P['U_o'], self.hidden)+ self.P['b_o'])      
 
             # compute new memory
-            self.cmem = forget*self.cmem + update*cand 
+            self.cmem = forget*self.cmem + input*cand 
             
             # compute new hidden state
             self.hidden = out * tanh.forward(self.cmem)
@@ -114,7 +114,7 @@ class LSTM(Model):
 
             # store computations
             self.f_states.append(forget)
-            self.i_states.append(update)
+            self.i_states.append(input)
             self.c_states.append(cand)
             self.o_states.append(out)
             self.cmem_states.append(self.cmem)
@@ -158,7 +158,7 @@ class LSTM(Model):
                 dy = self.loss_function.backward()
             
             # update gradient for hidden to output
-            self.G['dW_y'] += np.dot(dy, self.hidden_states[t+1].T)
+            self.G['dW_y'] += np.dot(dy, self.hidden_states[t].T)
             self.G['db_y'] += dy
 
             # compute derivative for hidden and output states       

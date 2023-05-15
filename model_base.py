@@ -27,6 +27,12 @@ class Model:
         self.P = {}
         self.G = {}
 
+        # the activation function (just use softmax for now)
+        self.activation = None
+
+        # the loss function used (cross entropy loss)
+        self.loss_function = None
+
     def forward(self, X):
         """
         Does Nothing. This is where forward propagation should happen.
@@ -45,6 +51,12 @@ class Model:
         """
         return 0
     
+    def loss(self, Y, Y_hat):
+        """
+        Computes the loss of the model.
+        """
+        return self.loss_function.forward(Y, Y_hat)
+    
     def optimize(self):
         """
         This is where the parameters are updated using the SGD optimizer.
@@ -55,7 +67,7 @@ class Model:
             grad = 'd' + param
             self.P[param] -= self.learning_rate * self.G[grad]
     
-    def fit(self, Xtrain, Ytrain, num_epochs, print_flag=False):
+    def fit(self, Xtrain, Ytrain, num_epochs, print_flag=True):
         """
         Fits the model with a given train dataset.
         Trains the model: forward prop, then back prop, and optimize.
@@ -91,7 +103,7 @@ class Model:
             
             # store loss at epoch
             epoch_loss.append(curr_loss)
-            if i % 5 == 0:
+            if print_flag and i % 5 == 0:
                 print(f'Epoch {i}, training loss: {epoch_loss[-1]}')
         
         return epoch_loss
