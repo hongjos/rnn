@@ -55,10 +55,10 @@ class RNN(Model):
         # iterate through each element in the input vector
         for t in range(t_range):
             # compute new hidden state
-            self.hidden = tanh.forward(np.dot(self.P['W_aa'], self.hidden) + np.dot(self.P['W_ax'], X[t]) + self.P['b_a'])
+            self.hidden = tanh(np.dot(self.P['W_aa'], self.hidden) + np.dot(self.P['W_ax'], X[t]) + self.P['b_a'])
 
             # compute output
-            y = self.activation.forward(np.dot(self.P['W_ya'], self.hidden) + self.P['b_y'])
+            y = self.activation(np.dot(self.P['W_ya'], self.hidden) + self.P['b_y'])
 
             # store output and hidden state
             self.hidden_states.append(self.hidden.copy())
@@ -83,17 +83,17 @@ class RNN(Model):
         dy = Y_hat.copy() # loss gradient
         
         if self.type == 'many-to-one':
-            loss = self.loss_function.forward(Y, Y_hat)
+            loss = self.loss_function(Y, Y_hat)
             # compute the gradient of the loss w.r.t output
-            dy = self.loss_function.backward()
+            dy = self.loss_function.derivative()
         
         # go through hidden layers and update gradients
         for t in reversed(range(len(self.hidden_states))):
             # if many-to-many type RNN we compute the loss at each step
             if self.type == "many-to-many":
-                loss += self.loss_function.forward(Y[t], self.outputs[t])
+                loss += self.loss_function(Y[t], self.outputs[t])
                 # compute the gradient of the loss w.r.t output
-                dy = self.loss_function.backward()
+                dy = self.loss_function.derivative()
 
             # update gradients for output weights and bias
             self.G['dW_ya'] += np.dot(dy, self.hidden_states[t].T)
@@ -103,7 +103,7 @@ class RNN(Model):
             da = np.dot(self.P['W_ya'].T, dy) + da_next 
 
             # update gradients for hidden weights and bias
-            dtanh = tanh.backward(self.hidden_states[t])*da
+            dtanh = tanh.derivative(self.hidden_states[t])*da
             self.G['db_a'] += dtanh
             self.G['dW_ax'] += np.dot(dtanh, X[t].T)
             self.G['dW_aa'] += np.dot(dtanh, self.hidden_states[t-1].T)

@@ -20,13 +20,13 @@ class Activation():
         """
         return self.type
 
-    def forward(self, x):
+    def __call__(self, x):
         """
         Computes the activation function applied to the input x.
         """
         raise NotImplemented("forward not implemented")
 
-    def backward(self, x):
+    def derivative(self, x):
         """
         Computes the derivative used for back propagation.
         """
@@ -39,11 +39,11 @@ class Softmax(Activation):
     def __init__(self, type="Softmax", eps=1e-10):
         super().__init__(type, eps)
 
-    def forward(self, x):
+    def __call__(self, x):
         x = x + self.eps # for safety
         return np.exp(x) / np.sum(np.exp(x))
 
-    def backward(self, x):
+    def derivative(self, x):
         """
         Unused.
         """
@@ -56,12 +56,12 @@ class Sigmoid(Activation):
     def __init__(self, type="Sigmoid", eps=1e-10):
         super().__init__(type, eps)
 
-    def forward(self, x):
+    def __call__(self, x):
         x = x + self.eps # for safety
         return 1 / (1 + np.exp(-x))
 
-    def backward(self, x):
-        a = self.forward(x)
+    def derivative(self, x):
+        a = self(x)
         return a*(1 - a) # sigmoid derivative
 
 class Tanh(Activation):
@@ -71,10 +71,10 @@ class Tanh(Activation):
     def __init__(self, type="Tanh", eps=1e-10):
         super().__init__(type, eps)
 
-    def forward(self, x):
+    def __call__(self, x):
         x = x + self.eps # for safety
         return np.tanh(x)
 
-    def backward(self, x):
-        a = self.forward(x)
+    def derivative(self, x):
+        a = self(x)
         return 1 - a**2 # tanh derivative

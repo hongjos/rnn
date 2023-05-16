@@ -89,28 +89,28 @@ class LSTM(Model):
             self.x_states.append(x)
             
             # compute forget gate
-            forget = sigmoid.forward(np.dot(self.P['W_f'], x) + np.dot(self.P['U_f'], self.hidden) + self.P['b_f'])
+            forget = sigmoid(np.dot(self.P['W_f'], x) + np.dot(self.P['U_f'], self.hidden) + self.P['b_f'])
 
             # compute input/update gate   
-            input = sigmoid.forward(np.dot(self.P['W_i'], x) + np.dot(self.P['U_i'], self.hidden) + self.P['b_i'])
+            input = sigmoid(np.dot(self.P['W_i'], x) + np.dot(self.P['U_i'], self.hidden) + self.P['b_i'])
 
             # compute candidate  
-            cand = tanh.forward(np.dot(self.P['W_c'], x) + np.dot(self.P['U_c'], self.hidden) + self.P['b_c'])
+            cand = tanh(np.dot(self.P['W_c'], x) + np.dot(self.P['U_c'], self.hidden) + self.P['b_c'])
 
             # compute output gate        
-            out = sigmoid.forward(np.dot(self.P['W_o'], x) + np.dot(self.P['U_o'], self.hidden)+ self.P['b_o'])      
+            out = sigmoid(np.dot(self.P['W_o'], x) + np.dot(self.P['U_o'], self.hidden)+ self.P['b_o'])      
 
             # compute new memory
             self.cmem = forget*self.cmem + input*cand 
             
             # compute new hidden state
-            self.hidden = out * tanh.forward(self.cmem)
+            self.hidden = out * tanh(self.cmem)
 
             # compute the hidden to output state
             h_o = np.dot(self.P['W_y'], self.hidden) + self.P['b_y']
 
             # compute the prediction
-            y = self.activation.forward(h_o)
+            y = self.activation(h_o)
 
             # store computations
             self.f_states.append(forget)
@@ -145,17 +145,17 @@ class LSTM(Model):
         dy = Y_hat.copy() # loss gradient
         
         if self.type == 'many-to-one':
-            loss = self.loss_function.forward(Y, Y_hat)
+            loss = self.loss_function(Y, Y_hat)
             # compute the gradient of the loss w.r.t output
-            dy = self.loss_function.backward()
+            dy = self.loss_function.derivative()
         
         # go through hidden layers and update gradients
         for t in reversed(range(len(self.hidden_states[1:]))):
             # if many-to-many type RNN we compute the loss at each step
             if self.type == "many-to-many":
-                loss += self.loss_function.forward(Y[t], self.outputs[t])
+                loss += self.loss_function(Y[t], self.outputs[t])
                 # compute the gradient of the loss w.r.t output
-                dy = self.loss_function.backward()
+                dy = self.loss_function.derivative()
             
             # update gradient for hidden to output
             self.G['dW_y'] += np.dot(dy, self.hidden_states[t].T)
@@ -163,7 +163,7 @@ class LSTM(Model):
 
             # compute derivative for hidden and output states       
             dh = np.dot(self.P['W_y'].T, dy) + dhidden_next
-            do = sigmoid.backward(self.o_states[t])*dh*tanh.forward(self.cmem_states[t])
+            do = sigmoid.derivative(self.o_states[t])*dh*tanh(self.cmem_states[t])
 
             # update gradients for output gate
             self.G['dW_o'] += np.dot(do, self.x_states[t].T)
@@ -171,9 +171,9 @@ class LSTM(Model):
             self.G['db_o'] += do
 
             # compute derivative for the cell memory state and candidate
-            dcmem = np.copy(dcmem_next) + dh*self.o_states[t]*tanh.backward(tanh.forward(self.cmem_states[t]))
+            dcmem = np.copy(dcmem_next) + dh*self.o_states[t]*tanh.derivative(tanh(self.cmem_states[t]))
             dc = dcmem*self.i_states[t]
-            dc = tanh.backward(self.c_states[t])*dc
+            dc = tanh.derivative(self.c_states[t])*dc
             
             # update the gradients with respect to the candidate
             self.G['dW_c'] += np.dot(dc, self.x_states[t].T)
@@ -181,13 +181,13 @@ class LSTM(Model):
             self.G['db_c'] += dc
 
             # update gradients for input/update gate
-            di = sigmoid.backward(self.i_states[t])*dcmem*self.c_states[t]
+            di = sigmoid.derivative(self.i_states[t])*dcmem*self.c_states[t]
             self.G['dW_i'] += np.dot(di, self.x_states[t].T)
             self.G['dU_i'] += np.dot(di, self.hidden_states[t].T)
             self.G['db_i'] += di
 
             # update gradients for forget fate
-            df = sigmoid.forward(self.f_states[t])*dcmem*self.cmem_states[t-1]
+            df = sigmoid(self.f_states[t])*dcmem*self.cmem_states[t-1]
             self.G['dW_f'] += np.dot(df, self.x_states[t].T)
             self.G['dU_f'] += np.dot(df, self.hidden_states[t].T)
             self.G['db_f'] += df

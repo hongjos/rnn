@@ -9,7 +9,7 @@ class CELoss:
         self.type = 'CELoss'
         self.type = Softmax()
     
-    def forward(self, Y, Y_hat):
+    def __call__(self, Y, Y_hat):
         """
         Computes the cross entropy loss for an expected out.
         ----
@@ -23,7 +23,7 @@ class CELoss:
         loss = np.sum(-Y*np.log(Y_hat), axis=1).mean()
         return loss
 
-    def backward(self):
+    def derivative(self):
         """
         Computes the derivative of the loss for back prop.
         """

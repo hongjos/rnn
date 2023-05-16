@@ -69,13 +69,13 @@ class GRU(Model):
         # iterate through each element in the input vector
         for t in range(t_range):
             # compute reset gate
-            reset = sigmoid.forward(np.dot(self.P['W_r'], X[t]) + np.dot(self.P['U_r'], self.hidden) + self.P['b_r'])
+            reset = sigmoid(np.dot(self.P['W_r'], X[t]) + np.dot(self.P['U_r'], self.hidden) + self.P['b_r'])
 
             # compute update gate      
-            update = sigmoid.forward(np.dot(self.P['W_u'], X[t]) + np.dot(self.P['U_u'], self.hidden) + self.P['b_u'])
+            update = sigmoid(np.dot(self.P['W_u'], X[t]) + np.dot(self.P['U_u'], self.hidden) + self.P['b_u'])
 
             # compute candidate     
-            cand = tanh.forward(np.dot(self.P['W_c'], X[t]) + np.dot(self.P['U_c'], self.hidden) +  self.P['b_c'])          
+            cand = tanh(np.dot(self.P['W_c'], X[t]) + np.dot(self.P['U_c'], self.hidden) +  self.P['b_c'])          
 
             # compute new hidden state
             self.hidden = np.multiply(update, self.hidden) + np.multiply((1 - update), cand)
@@ -84,7 +84,7 @@ class GRU(Model):
             h_o = np.dot(self.P['W_y'], self.hidden) + self.P['b_y']
 
             # compute the prediction
-            y = self.activation.forward(h_o)
+            y = self.activation(h_o)
 
             # store computation
             self.r_states.append(reset)
@@ -116,17 +116,17 @@ class GRU(Model):
         dy = Y_hat.copy() # loss gradient
         
         if self.type == 'many-to-one':
-            loss = self.loss_function.forward(Y, Y_hat)
+            loss = self.loss_function(Y, Y_hat)
             # compute the gradient of the loss w.r.t output
-            dy = self.loss_function.backward()
+            dy = self.loss_function.derivative()
         
         # go through hidden layers and update gradients
         for t in reversed(range(len(self.hidden_states))):
             # if many-to-many type RNN we compute the loss at each step
             if self.type == "many-to-many":
-                loss += self.loss_function.forward(Y[t], self.outputs[t])
+                loss += self.loss_function(Y[t], self.outputs[t])
                 # compute the gradient of the loss w.r.t output
-                dy = self.loss_function.backward()
+                dy = self.loss_function.derivative()
             
             # update gradient for hidden to output
             self.G['dW_y'] += np.dot(dy, self.hidden_states[t].T)
@@ -134,7 +134,7 @@ class GRU(Model):
 
             # compute derivatives for hidden and candidate
             dh = np.dot(self.P['W_y'].T, dy) + dhidden_next
-            dc = tanh.backward(self.c_states[t])*np.multiply(dh, (1 - self.u_states[t]))
+            dc = tanh.derivative(self.c_states[t])*np.multiply(dh, (1 - self.u_states[t]))
             
             # update gradients for candidate gate
             self.G['dW_c'] += np.dot(dc, X[t].T)
@@ -143,7 +143,7 @@ class GRU(Model):
             
             # compute derivatives for reset gate
             dr = np.multiply(np.dot(self.P['U_c'].T, dc), self.hidden_states[t-1])
-            dr = dr*sigmoid.backward(self.r_states[t])
+            dr = dr*sigmoid.derivative(self.r_states[t])
             
             # update reset gate gradients
             self.G['dW_r'] += np.dot(dr, X[t].T)
@@ -152,7 +152,7 @@ class GRU(Model):
             
             # compute derivatives for update gate
             du = np.multiply(dh, self.hidden_states[t-1] - self.c_states[t])
-            du = du*sigmoid.backward(self.u_states[t])
+            du = du*sigmoid.derivative(self.u_states[t])
             
             # update update gradients
             self.G['dW_u'] += np.dot(du, X[t].T)
